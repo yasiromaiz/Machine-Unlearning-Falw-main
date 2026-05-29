@@ -1,4 +1,4 @@
-from trainer import train
+from train import train
 
 from .impl import iterative_unlearn
 
