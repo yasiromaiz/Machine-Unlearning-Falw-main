@@ -83,6 +83,19 @@ def train(train_loader, model, criterion, optimizer, epoch, args, mask=None, l1=
 
         print("train_accuracy {top1.avg:.3f}".format(top1=top1))
     else:
+        # for i, (image, target) in enumerate(train_loader):
+        #     if epoch < args.warmup:
+        #         utils.warmup_lr(
+        #             epoch, i + 1, optimizer, one_epoch_step=len(train_loader), args=args
+        #         )
+
+        #     image = image.cuda()
+        #     target = target.cuda()
+        #     # compute output
+        #     output_clean = model(image)
+
+        # Added the below code by commenting the above else code 
+
         for i, (image, target) in enumerate(train_loader):
             if epoch < args.warmup:
                 utils.warmup_lr(
@@ -91,8 +104,11 @@ def train(train_loader, model, criterion, optimizer, epoch, args, mask=None, l1=
 
             image = image.cuda()
             target = target.cuda()
+            if target.dim() > 1:
+                target = target.squeeze(1)
             # compute output
             output_clean = model(image)
+
 
             loss = criterion(output_clean, target)
             if l1:

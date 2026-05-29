@@ -886,3 +886,134 @@ if __name__ == "__main__":
     train_loader, val_loader, test_loader = cifar10_dataloaders()
     for i, (img, label) in enumerate(train_loader):
         print(torch.unique(label).shape)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# DermaMNIST support
+# ═══════════════════════════════════════════════════════════════════
+
+class DermaMNISTDataset(Dataset):
+    """
+    Wraps dermamnist.npz arrays into a Dataset compatible
+    with the existing replace_indexes / replace_class marking system.
+      .data    -> np.ndarray [N, 28, 28, 3]  uint8
+      .targets -> np.ndarray [N]             int  (1-D, squeezed)
+    """
+    def __init__(self, images, labels, transform=None):
+        self.data    = images
+        self.targets = labels.squeeze(1).astype(int)  # [N,1] -> [N]
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        img = Image.fromarray(self.data[idx])   # HWC uint8 -> PIL
+        if self.transform:
+            img = self.transform(img)
+        return img, self.targets[idx]
+
+
+def dermamnist_dataloaders(
+    batch_size=128,
+    data_dir="datasets/dermamnist",
+    num_workers=2,
+    class_to_replace: int = None,
+    num_indexes_to_replace=None,
+    indexes_to_replace=None,
+    sample_forget_type="random",
+    seed: int = 1,
+    only_mark: bool = False,
+    shuffle=True,
+    no_aug=False,
+):
+    # ── transforms ──────────────────────────────────────────────────
+    if no_aug:
+        train_transform = transforms.Compose([
+            transforms.ToTensor(),
+        ])
+    else:
+        train_transform = transforms.Compose([
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
+            transforms.RandomRotation(15),
+            transforms.ColorJitter(brightness=0.1, contrast=0.1),
+            transforms.ToTensor(),
+        ])
+    test_transform = transforms.Compose([
+        transforms.ToTensor(),
+    ])
+
+    # ── load .npz ────────────────────────────────────────────────────
+    npz_path = os.path.join(data_dir, "dermamnist.npz")
+    print(f"Loading DermaMNIST from: {npz_path}")
+    npz      = np.load(npz_path)
+    tr_imgs  = npz["train_images"]   # (7007, 28, 28, 3) uint8
+    tr_lbls  = npz["train_labels"]   # (7007, 1)         uint8
+    val_imgs = npz["val_images"]     # (1003, 28, 28, 3)
+    val_lbls = npz["val_labels"]
+    te_imgs  = npz["test_images"]    # (2005, 28, 28, 3)
+    te_lbls  = npz["test_labels"]
+
+    print(f"DermaMNIST  train={len(tr_imgs)}  val={len(val_imgs)}"
+          f"  test={len(te_imgs)}  classes={len(np.unique(tr_lbls))}")
+
+    # ── build datasets ───────────────────────────────────────────────
+    train_set = DermaMNISTDataset(tr_imgs,  tr_lbls,  transform=train_transform)
+    val_set   = DermaMNISTDataset(val_imgs, val_lbls, transform=test_transform)
+    test_set  = DermaMNISTDataset(te_imgs,  te_lbls,  transform=test_transform)
+
+    train_set.targets = np.array(train_set.targets)
+    test_set.targets  = np.array(test_set.targets)
+
+    num_class = int(train_set.targets.max()) + 1
+
+    # ── apply forget-set marking ─────────────────────────────────────
+    if class_to_replace is not None and indexes_to_replace is not None:
+        raise ValueError(
+            "Specify only one of class_to_replace / indexes_to_replace"
+        )
+
+    if class_to_replace is not None:
+        replace_class(
+            train_set,
+            class_to_replace,
+            num_indexes_to_replace=num_indexes_to_replace,
+            sample_Df__type=sample_forget_type,
+            seed=seed - 1,
+            only_mark=only_mark,
+            num_classes=num_class,
+        )
+        if num_indexes_to_replace is None:
+            mask             = test_set.targets != class_to_replace
+            test_set.data    = test_set.data[mask]
+            test_set.targets = test_set.targets[mask]
+
+    if indexes_to_replace is not None:
+        replace_indexes(
+            dataset=train_set,
+            indexes=indexes_to_replace,
+            seed=seed - 1,
+            only_mark=only_mark,
+        )
+
+    # ── dataloaders ──────────────────────────────────────────────────
+    loader_args = {"num_workers": 0, "pin_memory": False}
+
+    def _init_fn(worker_id):
+        np.random.seed(int(seed))
+
+    train_loader = DataLoader(
+        train_set, batch_size=batch_size, shuffle=True,
+        worker_init_fn=_init_fn, **loader_args
+    )
+    val_loader = DataLoader(
+        val_set, batch_size=batch_size, shuffle=False,
+        worker_init_fn=_init_fn, **loader_args
+    )
+    test_loader = DataLoader(
+        test_set, batch_size=batch_size, shuffle=False,
+        worker_init_fn=_init_fn, **loader_args
+    )
+
+    return train_loader, val_loader, test_loader

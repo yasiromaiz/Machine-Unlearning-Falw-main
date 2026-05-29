@@ -36,8 +36,43 @@ def setup_model_dataset(args):
             batch_size=args.batch_size, data_dir=args.data, num_workers=args.workers
         )
 
+    # else:
+    #     raise ValueError("Dataset not supprot yet !")
+
+
+    # Added this below lines of code in place of above else code 
+    
+    elif args.dataset == "dermamnist":
+        classes = 7
+        normalization = NormalizeByChannelMeanStd(
+            mean=[0.7631, 0.5380, 0.5614],
+            std= [0.1366, 0.1543, 0.1692]
+        )
+        train_set_loader, val_loader, test_loader = dermamnist_dataloaders(
+            batch_size=args.batch_size,
+            data_dir=args.data,
+            num_workers=args.workers,
+            class_to_replace=args.class_to_replace
+                if hasattr(args, "class_to_replace") else None,
+            num_indexes_to_replace=args.num_indexes_to_replace
+                if hasattr(args, "num_indexes_to_replace") else None,
+            sample_forget_type=args.sample_forget_type
+                if hasattr(args, "sample_forget_type") else "random",
+            seed=args.seed,
+            only_mark=True,
+        )
     else:
-        raise ValueError("Dataset not supprot yet !")
+        raise ValueError("Dataset not supported yet!")
+
+    if args.imagenet_arch:
+        model = model_dict[args.arch](num_classes=classes, imagenet=True)
+    else:
+        model = model_dict[args.arch](num_classes=classes)
+
+    model.normalize = normalization
+    return model, train_set_loader, val_loader, test_loader
+
+
 
     if args.imagenet_arch:
         model = model_dict[args.arch](num_classes=classes, imagenet=True)

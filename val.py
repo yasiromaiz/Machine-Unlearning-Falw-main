@@ -42,9 +42,19 @@ def validate(val_loader, model, criterion, args):
         print("valid_accuracy {top1.avg:.3f}".format(top1=top1))
     else:
         # print("args.num_classes:",args.num_classes)
+        
+        # for i, (image, target) in enumerate(val_loader):
+        #     image = image.to(device)
+        #     target = target.to(device)
+
+    # Now the below code is added by above code commenting
+
         for i, (image, target) in enumerate(val_loader):
             image = image.to(device)
             target = target.to(device)
+            if target.dim() > 1:
+                target = target.squeeze(1)
+
 
             # compute output
             with torch.no_grad():

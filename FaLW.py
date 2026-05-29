@@ -84,7 +84,14 @@ def FaLW(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
     val_loader = data_loaders['val']
     forget_dataset = deepcopy(forget_loader.dataset)
     
-    if args.dataset == "cifar100" or args.dataset == "TinyImagenet" or args.dataset == 'cifar10':
+    
+        # if args.dataset == "cifar100" or args.dataset == "TinyImagenet" or args.dataset == 'cifar10':
+
+        # We commented above line of code and written below lines of code
+
+    if args.dataset in ("cifar100", "TinyImagenet", "cifar10", "dermamnist"):
+
+
         # exit(0)
         # try:
         #     forget_dataset.targets = np.random.randint(0, args.num_classes, forget_dataset.targets.shape)
