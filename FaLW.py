@@ -18,10 +18,21 @@ class MarkedDataset(torch.utils.data.Dataset):
         # self.target = dataset.targets
         self.dataset = dataset
         self.source = source
-        if self.source :
-            self.random_target = np.random.randint(0, max(self.dataset.targets)+1,self.dataset.targets.shape)
+        # if self.source :
+        #     self.random_target = np.random.randint(0, max(self.dataset.targets)+1,self.dataset.targets.shape)
+        # else:
+        #     self.random_target = deepcopy(self.dataset.targets)
+
+    # Commented above if, else and update with the below code
+
+        if self.source:
+            targets_1d = np.array(self.dataset.targets).flatten()
+            self.random_target = np.random.randint(
+                0, targets_1d.max() + 1, targets_1d.shape
+            )
         else:
-            self.random_target = deepcopy(self.dataset.targets)
+            self.random_target = np.array(self.dataset.targets).flatten()
+        
         
     def __getitem__(self, index) :
         image,target = self.dataset[index]
