@@ -30,7 +30,9 @@ from val import validate
 from utils import *
 # from utils import NormalizeByChannelMeanStd
 
-from utilitis import NormalizeByChannelMeanStd
+# from utilitis import NormalizeByChannelMeanStd
+
+from ResNet import NormalizeByChannelMeanStd
 
 import sys 
 best_sa = 0
