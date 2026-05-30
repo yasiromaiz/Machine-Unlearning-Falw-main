@@ -73,7 +73,7 @@ def main():
             train_loader,
             val_loader,
             test_loader,
-            marked_loader,
+            # marked_loader,
         ) = setup_model_dataset(args)
     
     
