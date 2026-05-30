@@ -1,4 +1,5 @@
 import argparse
+import utils
 import os
 import pdb
 import pickle
@@ -27,7 +28,13 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from train import train
 from val import validate
 
+# from utils import *
+
+# NOTE : chnaged above line of code and added below line of code
+
 from utils import *
+from utilitis import setup_model_dataset
+
 # from utils import NormalizeByChannelMeanStd
 
 # from utilitis import NormalizeByChannelMeanStd
@@ -50,7 +57,11 @@ def main():
     sys.stderr = sys.stdout
     
     if args.seed:
-        setup_seed(args.seed)
+        # setup_seed(args.seed)   
+
+        # NOTE : Commented above line code and added below line of code 
+
+       utils.setup_seed(args.seed) 
 
     # prepare dataset
     if args.dataset == "imagenet":
