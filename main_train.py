@@ -22,7 +22,11 @@ import torchvision.transforms as transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 # from trainer import train, validate
 
-from train import train, validate
+# from train import train, validate  commented this line as well then add below line of code
+
+from train import train
+from val import validate
+
 from utils import *
 from utils import NormalizeByChannelMeanStd
 import sys 

@@ -11,7 +11,10 @@ import torch.optim
 import torch.utils.data
 import unlearn
 import utils
-from trainer import validate
+# from trainer import validate
+
+from val import validate
+
 import warnings
 warnings.filterwarnings("ignore")
 
