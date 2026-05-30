@@ -55,7 +55,7 @@ __all__ = ["setup_model_dataset"]
 def setup_model_dataset(args):
 
     # NOTE : Added the below line of code
-    
+
     only_mark = getattr(args, 'only_mark', False)
 
     if args.dataset == "cifar10":
@@ -99,7 +99,8 @@ def setup_model_dataset(args):
             sample_forget_type=args.sample_forget_type
                 if hasattr(args, "sample_forget_type") else "random",
             seed=args.seed,
-            only_mark=True,
+            # only_mark=True,
+            only_mark=only_mark,
         )
     else:
         raise ValueError("Dataset not supported yet!")
