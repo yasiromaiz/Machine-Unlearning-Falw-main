@@ -53,6 +53,11 @@ __all__ = ["setup_model_dataset"]
 
 
 def setup_model_dataset(args):
+
+    # NOTE : Added the below line of code
+    
+    only_mark = getattr(args, 'only_mark', False)
+
     if args.dataset == "cifar10":
         classes = 10
         normalization = NormalizeByChannelMeanStd(
