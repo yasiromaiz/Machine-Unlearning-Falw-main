@@ -323,3 +323,111 @@ def global_prune_model(
             amount=ratio,
             importance_scores=score_dict,
         )
+
+
+
+# ═══════════════════════════════════════════════════════════
+# Core utility functions needed across the codebase
+# ═══════════════════════════════════════════════════════════
+
+import random
+import torch
+import numpy as np
+import os
+import shutil
+
+
+def setup_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+
+
+class AverageMeter(object):
+    """Computes and stores the average and current value"""
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.val   = 0
+        self.avg   = 0
+        self.sum   = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val    = val
+        self.sum   += val * n
+        self.count += n
+        self.avg    = self.sum / self.count
+
+
+def accuracy(output, target, topk=(1,)):
+    """Computes the accuracy over the top-k predictions"""
+    with torch.no_grad():
+        maxk = max(topk)
+        batch_size = target.size(0)
+
+        _, pred = output.topk(maxk, 1, True, True)
+        pred    = pred.t()
+        correct = pred.eq(target.view(1, -1).expand_as(pred))
+
+        res = []
+        for k in topk:
+            correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
+            res.append(correct_k.mul_(100.0 / batch_size))
+        return res
+
+
+def warmup_lr(epoch, step, optimizer, one_epoch_step, args):
+    overall_steps = args.warmup * one_epoch_step
+    current_steps = epoch * one_epoch_step + step
+    lr = args.lr * current_steps / overall_steps
+    lr = min(lr, args.lr)
+    for p in optimizer.param_groups:
+        p["lr"] = lr
+
+
+def save_checkpoint(state, is_SA_best, save_path, pruning,
+                    filename="checkpoint.pth.tar"):
+    filepath = os.path.join(save_path, str(pruning) + filename)
+    torch.save(state, filepath)
+    if is_SA_best:
+        shutil.copyfile(
+            filepath,
+            os.path.join(save_path, str(pruning) + "model_SA_best.pth.tar"),
+        )
+
+
+def load_checkpoint(device, save_path, pruning,
+                    filename="checkpoint.pth.tar"):
+    filepath = os.path.join(save_path, str(pruning) + filename)
+    if os.path.exists(filepath):
+        print("Loading checkpoint from:", filepath)
+        return torch.load(filepath, map_location=device)
+    else:
+        print("No checkpoint found at:", filepath)
+        return None
+
+
+def dataset_convert_to_test(dataset, args):
+    """Switch dataset to test mode - disable augmentation"""
+    from torchvision import transforms
+    test_transform = transforms.Compose([transforms.ToTensor()])
+    dataset.transform = test_transform
+    return dataset
+
+
+def calculate_dataset_distribution(loader, args):
+    """Calculate class distribution of a dataset"""
+    class_counts = torch.zeros(args.num_classes)
+    for _, targets in loader:
+        if targets.dim() > 1:
+            targets = targets.squeeze(1)
+        for t in targets:
+            if 0 <= t < args.num_classes:
+                class_counts[t] += 1
+    total = class_counts.sum()
+    distribution = (class_counts / total.clamp(min=1)).tolist()
+    return distribution
