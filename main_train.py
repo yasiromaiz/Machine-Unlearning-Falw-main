@@ -28,7 +28,10 @@ from train import train
 from val import validate
 
 from utils import *
-from utils import NormalizeByChannelMeanStd
+# from utils import NormalizeByChannelMeanStd
+
+from utilitis import NormalizeByChannelMeanStd
+
 import sys 
 best_sa = 0
 
